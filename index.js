@@ -1,5 +1,5 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 const app = express();
 require("dotenv").config();
@@ -28,10 +28,35 @@ async function run() {
       .db("studyBuddy")
       .collection("allAssignments");
 
+    const submitCollection = client
+      .db("studyBuddy")
+      .collection("submitedAssignments");
+
+    //create assignments
     app.post("/create", async (req, res) => {
       const body = req.body;
-      console.log(body);
+
       const result = await publicCollection.insertOne(body);
+      res.send(result);
+    });
+
+    app.get("/allAssignments", async (req, res) => {
+      const result = await publicCollection.find().toArray();
+      res.send(result);
+    });
+
+    //submited assignments
+    app.post("/submit-assignment", async (req, res) => {
+      const body = req.body;
+      console.log(body);
+      const result = await submitCollection.insertOne(body);
+      res.send(result);
+    });
+
+    app.get("/view-assignment/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await publicCollection.findOne(query);
       res.send(result);
     });
 
