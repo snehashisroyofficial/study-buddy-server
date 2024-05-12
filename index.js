@@ -1,5 +1,10 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const {
+  MongoClient,
+  ServerApiVersion,
+  ObjectId,
+  MongoAWSError,
+} = require("mongodb");
 const cors = require("cors");
 const app = express();
 require("dotenv").config();
@@ -57,6 +62,27 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await publicCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.get("/my-submitted-assignments/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { emailAddress: email };
+      const result = await submitCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.get("/pending-assignments/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { "buyerDetails.email": email };
+      const result = await submitCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.get("/pending-assignments/user-based/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await submitCollection.findOne(query);
       res.send(result);
     });
 
