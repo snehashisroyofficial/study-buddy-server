@@ -1,10 +1,5 @@
 const express = require("express");
-const {
-  MongoClient,
-  ServerApiVersion,
-  ObjectId,
-  MongoAWSError,
-} = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 const app = express();
 require("dotenv").config();
