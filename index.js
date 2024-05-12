@@ -79,10 +79,26 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/pending-assignments/user-based/:id", async (req, res) => {
+    app.get("/pending-assignments/assignment-based/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await submitCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.patch("/submit-marks/:id", async (req, res) => {
+      const id = req.params.id;
+      const body = req.body;
+
+      const query = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          obtainedMarks: body.marks,
+          feedBack: body.feedback,
+          status: body.status,
+        },
+      };
+      const result = await submitCollection.updateOne(query, updatedDoc);
       res.send(result);
     });
 
