@@ -2,10 +2,16 @@ const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 const app = express();
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const port = process.env.port || 5000;
 //middle ware setup
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.USER_DB}:${process.env.USER_PASS}@cluster0.8kmx02i.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -32,10 +38,33 @@ async function run() {
       .db("studyBuddy")
       .collection("submitedAssignments");
 
+    //jwt cookies
+
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      console.log("user for token", user);
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: false,
+          sameSite: "none",
+        })
+        .send({ success: "token successfully set" });
+    });
+
+    app.post("/clearCookies", (req, res) => {
+      res
+        .clearCookie("token", { maxAge: 0 })
+        .send({ success: "cookies cleared" });
+    });
+
     //create assignments
     app.post("/create", async (req, res) => {
       const body = req.body;
-
       const result = await publicCollection.insertOne(body);
       res.send(result);
     });
