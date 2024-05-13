@@ -45,6 +45,32 @@ async function run() {
       res.send(result);
     });
 
+    app.delete("/delete/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await publicCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.patch("/update-assignment/:id", async (req, res) => {
+      const id = req.params.id;
+      const body = req.body;
+      const query = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          title: body.title,
+          url: body.url,
+          marks: body.marks,
+          date: body.date,
+          difficulty: body.difficulty,
+          description: body.description,
+        },
+      };
+
+      const result = await publicCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    });
+
     //submited assignments
     app.post("/submit-assignment", async (req, res) => {
       const body = req.body;
