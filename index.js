@@ -3,6 +3,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 const app = express();
 const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
 const port = process.env.port || 5000;
 //middle ware setup
@@ -13,6 +14,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(cookieParser());
 
 const uri = `mongodb+srv://${process.env.USER_DB}:${process.env.USER_PASS}@cluster0.8kmx02i.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -24,6 +26,30 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+// middleware
+const logger = (req, res, next) => {
+  console.log(req.method, req.url);
+  next();
+};
+
+const verifyToken = (req, res, next) => {
+  console.log(req.url);
+  const token = req.cookies?.token;
+  // console.log("token in the middle ware", token);
+  // no token available
+  if (!token) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized access" });
+    }
+    req.user = decoded;
+    next();
+  });
+};
 
 async function run() {
   try {
@@ -48,18 +74,13 @@ async function run() {
       });
 
       res
-        .cookie("token", token, {
-          httpOnly: true,
-          secure: false,
-          sameSite: "none",
-        })
+        .cookie("token", token, { expiresIn: "1h" })
         .send({ success: "token successfully set" });
     });
 
-    app.post("/clearCookies", (req, res) => {
-      res
-        .clearCookie("token", { maxAge: 0 })
-        .send({ success: "cookies cleared" });
+    app.post("/clearCookies", async (req, res) => {
+      console.log(req.body);
+      res.clearCookie("token", { maxAge: 0 }).send({ success: true });
     });
 
     //create assignments
@@ -115,14 +136,24 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/my-submitted-assignments/:email", async (req, res) => {
-      const email = req.params.email;
-      const query = { emailAddress: email };
-      const result = await submitCollection.find(query).toArray();
-      res.send(result);
-    });
+    app.get(
+      "/my-submitted-assignments/:email",
+      verifyToken,
+      async (req, res) => {
+        if (req.user.email !== req.params.email) {
+          return res.status(403).send({ message: "forbidden access" });
+        }
+        const email = req.params.email;
+        const query = { emailAddress: email };
+        const result = await submitCollection.find(query).toArray();
+        res.send(result);
+      }
+    );
 
-    app.get("/pending-assignments/:email", async (req, res) => {
+    app.get("/pending-assignments/:email", verifyToken, async (req, res) => {
+      if (req.user.email !== req.params.email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
       const email = req.params.email;
       const query = { "buyerDetails.email": email };
       const result = await submitCollection.find(query).toArray();
